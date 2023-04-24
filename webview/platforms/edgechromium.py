@@ -49,6 +49,7 @@ class EdgeChrome:
         self.web_view = WebView2()
         props = CoreWebView2CreationProperties()
         props.UserDataFolder = cache_dir
+        props.set_IsInPrivateModeEnabled(_private_mode)
         self.web_view.CreationProperties = props
         # self.web_view.Top += 8 + 30
         # self.web_view.Left += 8
@@ -73,6 +74,7 @@ class EdgeChrome:
         # # form.Padding = WinForms.Padding(50)
         # # form.Margin = WinForms.Padding(50)
         # form.Controls.Add(self.button)
+
         form.Controls.Add(self.web_view)
         # # self.web_view.AutoSize = True
 
@@ -84,6 +86,8 @@ class EdgeChrome:
         # self.web_view.Size = Size(form.Size.Width - self.web_view.Left * 2, form.Size.Height - (self.web_view.Top + self.web_view.Left))
         # self.web_view.Anchor = getattr(WinForms.AnchorStyles, 'None')
         # self.web_view.Anchor = WinForms.AnchorStyles.Top | WinForms.AnchorStyles.Right | WinForms.AnchorStyles.Left | WinForms.AnchorStyles.Bottom
+        self.web_view.Dock = WinForms.DockStyle.Fill
+        self.web_view.BringToFront()
         self.web_view.CoreWebView2InitializationCompleted += self.on_webview_ready
         self.web_view.NavigationStarting += self.on_navigation_start
         self.web_view.NavigationCompleted += self.on_navigation_completed

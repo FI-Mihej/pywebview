@@ -58,7 +58,7 @@ def get_app_root():
     Gets the file root of the application.
     """
 
-    if hasattr(sys, '_MEIPASS'): # Pyifnstaller
+    if hasattr(sys, '_MEIPASS'): # Pyinstaller
         return sys._MEIPASS
 
     if getattr(sys, 'frozen', False): # cx_freeze
@@ -104,7 +104,7 @@ def create_cookie(input):
         cookie[name]['httponly'] = input['httponly']
 
         if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
-            cookie[name]['samesite'] = input['samesite']
+            cookie[name]['samesite'] = input.get('samesite')
 
         return cookie
     elif type(input) == str:
@@ -179,6 +179,7 @@ def js_bridge_call(window, func_name, param, value_id):
             result = json.dumps(result).replace('\\', '\\\\').replace('\'', '\\\'')
             code = 'window.pywebview._returnValues["{0}"]["{1}"] = {{value: \'{2}\'}}'.format(func_name, value_id, result)
         except Exception as e:
+            print(traceback.format_exc())
             error = {
                 'message': str(e),
                 'name': type(e).__name__,

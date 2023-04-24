@@ -9,10 +9,12 @@ http://github.com/r0x0r/pywebview/
 import os
 import sys
 import logging
-from threading import Event, Semaphore, Thread
+import threading
+from threading import Event, Semaphore
 import ctypes
 from ctypes import windll
 from platform import machine
+import tempfile
 
 from webview import windows, _private_mode, _storage_path, OPEN_DIALOG, FOLDER_DIALOG, SAVE_DIALOG
 from webview.guilib import forced_gui_
@@ -116,17 +118,21 @@ else:
     logger.debug('Using WinForms / MSHTML')
     renderer = 'mshtml'
 
-if not _private_mode:
+if not _private_mode or _storage_path:
     try:
-        app_data = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
-        cache_dir = _storage_path or os.path.join(app_data, 'pywebview')
+        data_folder = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)
+        
+        if not os.access(data_folder, os.W_OK):
+            data_folder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+            
+        cache_dir = _storage_path or os.path.join(data_folder, 'pywebview')
 
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
     except Exception as e:
         logger.exception(f'Cache directory {cache_dir} creation failed')
 else:
-    cache_dir = None
+    cache_dir = tempfile.TemporaryDirectory().name
 
 class BrowserView:
     instances = {}
@@ -134,7 +140,7 @@ class BrowserView:
     app_menu_list = None
 
     class BrowserForm(WinForms.Form):
-        def __init__(self, window):
+        def __init__(self, window, cache_dir):
             super().__init__()
             self.uid = window.uid
             self.pywebview_window = window
@@ -174,7 +180,7 @@ class BrowserView:
             self.loaded = window.events.loaded
             self.url = window.real_url
             self.text_select = window.text_select
-            self.on_top = window.on_top
+            self.TopMost = window.on_top
             self.scale_factor = 1
 
             self.is_fullscreen = False
@@ -188,6 +194,10 @@ class BrowserView:
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
+
+            if BrowserView.app_menu_list:
+                self.set_window_menu(BrowserView.app_menu_list)
+
             if is_cef:
                 print('is_cef')
                 self.browser = None
@@ -226,9 +236,8 @@ class BrowserView:
                 CEF.focus(self.uid)
 
         def on_shown(self, sender, args):
-            self.shown.set()
-
             if not is_cef:
+                self.shown.set()
                 self.browser.web_view.Focus()
 
         def on_close(self, sender, args):
@@ -341,7 +350,10 @@ class BrowserView:
             self.Invoke(Func[Type](self.Hide))
 
         def show(self):
-            self.Invoke(Func[Type](self.Show))
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](self.Show))
+            else:
+                self.Show()
 
         def set_window_menu(self, menu_list):
             def _set_window_menu():
@@ -354,7 +366,7 @@ class BrowserView:
                         elif isinstance(menu_line_item, MenuAction):
                             action_item = WinForms.ToolStripMenuItem(menu_line_item.title)
                             # Don't run action function on main thread
-                            action_item.Click += lambda _,__,menu_line_item=menu_line_item : Thread(target=menu_line_item.function).start()
+                            action_item.Click += lambda _,__,menu_line_item=menu_line_item : threading.Thread(target=menu_line_item.function).start()
                             m.DropDownItems.Add(action_item)
                         elif isinstance(menu_line_item, Menu):
                             create_submenu(menu_line_item.title, menu_line_item.items, m)
@@ -371,7 +383,10 @@ class BrowserView:
 
                 self.Controls.Add(top_level_menu)
 
-            self.Invoke(Func[Type](_set_window_menu))
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](_set_window_menu))
+            else:
+                _set_window_menu()
 
         def toggle_fullscreen(self):
             def _toggle():
@@ -548,13 +563,15 @@ def setup_app():
 
 def create_window(window):
     def create():
-        browser = BrowserView.BrowserForm(window)
+        browser = BrowserView.BrowserForm(window, cache_dir)
         BrowserView.instances[window.uid] = browser
 
-        if len(BrowserView.app_menu_list):
-            browser.set_window_menu(BrowserView.app_menu_list)
-
-        if not window.hidden:
+        if window.hidden:
+            browser.Opacity = 0
+            browser.Show()
+            browser.Hide()
+            browser.Opacity = 1
+        else:
             browser.Show()
 
         _main_window_created.set()
@@ -600,7 +617,7 @@ def set_title(title, uid):
 
 
 def create_confirmation_dialog(title, message, uid):
-    result = WinForms.MessageBox.Show(title, message, WinForms.MessageBoxButtons.OKCancel)
+    result = WinForms.MessageBox.Show(message, title, WinForms.MessageBoxButtons.OKCancel)
     return result == WinForms.DialogResult.OK
 
 
@@ -747,7 +764,7 @@ def toggle_maximized(uid):
 
 def set_on_top(uid, on_top):
     window = BrowserView.instances[uid]
-    window.on_top = on_top
+    window.TopMost = on_top
 
 
 def resize(width, height, uid, fix_point):
@@ -800,3 +817,7 @@ def get_size(uid):
 def get_screens():
     screens = [Screen(s.Bounds.Width, s.Bounds.Height) for s in WinForms.Screen.AllScreens]
     return screens
+
+def add_tls_cert(certfile):
+    raise NotImplementedError
+

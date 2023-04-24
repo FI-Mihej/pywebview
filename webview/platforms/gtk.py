@@ -26,6 +26,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 gi.require_version('WebKit2', '4.0')
+gi.require_version('Soup', '2.4')
 
 from gi.repository import Gtk as gtk
 from gi.repository import Gdk
@@ -565,6 +566,12 @@ def toggle_fullscreen(uid):
     def _toggle_fullscreen():
         BrowserView.instances[uid].toggle_fullscreen()
     glib.idle_add(_toggle_fullscreen)
+
+
+def add_tls_cert(certfile):
+    web_context = webkit.WebContext.get_default()
+    cert = Gio.TlsCertificate.new_from_file(certfile)
+    web_context.allow_tls_certificate_for_host(cert, '127.0.0.1')
 
 
 def set_on_top(uid, top):
