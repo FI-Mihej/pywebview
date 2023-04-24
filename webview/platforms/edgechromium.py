@@ -29,7 +29,7 @@ from System import String, Action, Func, Type, Uri
 from System.Collections.Generic import List
 from System.Globalization import CultureInfo
 from System.Threading.Tasks import Task, TaskScheduler
-from System.Drawing import Color
+from System.Drawing import Color, Size
 
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.Core.dll'))
 clr.AddReference(interop_dll_path('Microsoft.Web.WebView2.WinForms.dll'))
@@ -50,11 +50,40 @@ class EdgeChrome:
         props = CoreWebView2CreationProperties()
         props.UserDataFolder = cache_dir
         self.web_view.CreationProperties = props
+        # self.web_view.Top += 8 + 30
+        # self.web_view.Left += 8
+        # self.button = WinForms.Button()
+        # self.button.Text = "X"
+        # self.button.Size = Size(40, 30)
+        # self.button.AutoSize = True
+        # self.button.Top += self.web_view.Left
+        # self.button.Left += form.Size.Width - (self.button.Size.Width + self.web_view.Left)
+        # self.button.Anchor = WinForms.AnchorStyles.Top | WinForms.AnchorStyles.Right
+        # if hasattr(window, 'on_close'):
+        #     self.button.Click += window.on_close
+        
+        # self.button.Click += lambda sender, args: form.Close()
+        # # self.panel = WinForms.Panel()
+        # # self.panel.BackColor = form.BackColor
+        # # self.panel.Padding = WinForms.Padding(50)
+        # # form.Controls.Add(self.panel)
+        # # self.panel.Dock = WinForms.DockStyle.Fill
+        # # self.panel.Controls.Add(self.button)
+        # # self.panel.Controls.Add(self.web_view)
+        # # form.Padding = WinForms.Padding(50)
+        # # form.Margin = WinForms.Padding(50)
+        # form.Controls.Add(self.button)
         form.Controls.Add(self.web_view)
+        # # self.web_view.AutoSize = True
 
         self.js_results = {}
         self.js_result_semaphore = Semaphore(0)
-        self.web_view.Dock = WinForms.DockStyle.Fill
+        # # self.web_view.Dock = WinForms.DockStyle.Fill
+        # # self.web_view.Dock = WinForms.DockStyle.Bottom
+        # # self.web_view.Size = Size(200, 200)
+        # self.web_view.Size = Size(form.Size.Width - self.web_view.Left * 2, form.Size.Height - (self.web_view.Top + self.web_view.Left))
+        # self.web_view.Anchor = getattr(WinForms.AnchorStyles, 'None')
+        # self.web_view.Anchor = WinForms.AnchorStyles.Top | WinForms.AnchorStyles.Right | WinForms.AnchorStyles.Left | WinForms.AnchorStyles.Bottom
         self.web_view.CoreWebView2InitializationCompleted += self.on_webview_ready
         self.web_view.NavigationStarting += self.on_navigation_start
         self.web_view.NavigationCompleted += self.on_navigation_completed

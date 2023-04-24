@@ -63,7 +63,7 @@ class Window:
     def __init__(self, uid, title, url, html, width, height, x, y, resizable, fullscreen,
                  min_size, hidden, frameless, easy_drag, minimized, on_top, confirm_close,
                  background_color, js_api, text_select, transparent, zoomable, draggable, vibrancy, localization,
-                 http_port=None, server=None, server_args={}):
+                 http_port=None, server=None, server_args={}, maximized=False):
         self.uid = uid
         self.title = title
         self.original_url = None if html else url  # original URL provided by user
@@ -75,6 +75,7 @@ class Window:
         self.initial_y = y
         self.resizable = resizable
         self.fullscreen = fullscreen
+        self.maximized = maximized
         self.min_size = min_size
         self.confirm_close = confirm_close
         self.background_color = background_color
@@ -309,12 +310,38 @@ class Window:
         self.gui.toggle_fullscreen(self.uid)
 
     @_shown_call
+    def toggle_maximized(self):
+        """
+        Toggle maximized mode
+        """
+        self.gui.toggle_maximized(self.uid)
+
+    @_shown_call
     def move(self, x, y):
         """
         Move Window
         :param x: desired x coordinate of target window
         :param y: desired y coordinate of target window
         """
+        self.gui.move(x, y, self.uid)
+
+    @_shown_call
+    def move_from_web_view(self, x, y):
+        """
+        Move Window
+        :param x: desired x coordinate of target window
+        :param y: desired y coordinate of target window
+        """
+        from webview.platforms.winforms import BrowserView
+        try:
+            browser_form: BrowserView.BrowserForm = BrowserView.instances[self.uid]
+            browser = browser_form.browser
+            web_view = browser.web_view
+            x -= web_view.Left
+            y -= web_view.Top
+        except KeyError:
+            pass
+
         self.gui.move(x, y, self.uid)
 
     @_loaded_call

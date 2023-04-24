@@ -181,17 +181,24 @@ class BrowserView:
             if window.fullscreen:
                 self.toggle_fullscreen()
 
+            self.is_maximized = False
+            if window.maximized:
+                self.toggle_maximized()
+
             if window.frameless:
                 self.frameless = window.frameless
                 self.FormBorderStyle = getattr(WinForms.FormBorderStyle, 'None')
             if is_cef:
+                print('is_cef')
                 self.browser = None
                 CEF.create_browser(window, self.Handle.ToInt32(), BrowserView.alert, self)
             elif is_chromium:
+                print('is_chromium')
                 self.browser = Chromium.EdgeChrome(self, window, cache_dir)
                 # for chromium edge, need this factor to modify the coordinates
                 self.scale_factor = windll.shcore.GetScaleFactorForDevice(0)/100
             else:
+                print('IE.MSHTML')
                 self.browser = IE.MSHTML(self, window, BrowserView.alert)
 
             if window.transparent and self.browser: # window transparency is supported only with EdgeChromium
@@ -393,6 +400,20 @@ class BrowserView:
             else:
                 _toggle()
 
+        def toggle_maximized(self):
+            def _toggle():
+                if not self.is_maximized:
+                    self.WindowState = WinForms.FormWindowState.Maximized
+                    self.is_maximized = True
+                else:
+                    self.WindowState = WinForms.FormWindowState.Normal
+                    self.is_maximized = False
+
+            if self.InvokeRequired:
+                self.Invoke(Func[Type](_toggle))
+            else:
+                _toggle()
+
         @property
         def on_top(self):
             return self.on_top
@@ -537,11 +558,14 @@ def create_window(window):
             browser.Show()
 
         _main_window_created.set()
+        if hasattr(window, 'on_created'):
+            window.on_created(app, window)
 
         if window.uid == 'master':
             app.Run()
 
     app = WinForms.Application
+    # app.SetCompatibleTextRenderingDefault(True)
 
     if window.uid == 'master':
         if not is_cef and not is_chromium:
@@ -714,6 +738,11 @@ def hide(uid):
 def toggle_fullscreen(uid):
     window = BrowserView.instances[uid]
     window.toggle_fullscreen()
+
+
+def toggle_maximized(uid):
+    window = BrowserView.instances[uid]
+    window.toggle_maximized()
 
 
 def set_on_top(uid, on_top):

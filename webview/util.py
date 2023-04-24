@@ -190,7 +190,7 @@ def js_bridge_call(window, func_name, param, value_id):
         window.evaluate_js(code)
 
     if func_name == 'moveWindow':
-        window.move(*param)
+        window.move_from_web_view(*param)
         return
 
     if func_name == 'asyncCallback':
